@@ -146,13 +146,15 @@ type Reader struct {
 	runningHandlers int32
 	stopFlag        int32
 	stopHandler     sync.Once
+
+    authenticationPassword string
 }
 
 // NewReader creates a new instance of Reader for the specified topic/channel
 //
 // The returned Reader instance is setup with sane default values.  To modify
 // configuration, update the values on the returned instance before connecting.
-func NewReader(topic string, channel string) (*Reader, error) {
+func NewReader(topic string, channel string, authenticationPassword string) (*Reader, error) {
 	if !IsValidTopicName(topic) {
 		return nil, errors.New("invalid topic name")
 	}
@@ -199,6 +201,8 @@ func NewReader(topic string, channel string) (*Reader, error) {
 		rdyChan:            make(chan *nsqConn, 1),
 
 		ExitChan: make(chan int),
+
+        authenticationPassword:     authenticationPassword,
 	}
 	q.SetMaxBackoffDuration(120 * time.Second)
 	go q.rdyLoop()
@@ -635,6 +639,9 @@ func (q *Reader) ConnectToNSQ(addr string) error {
 	ci["snappy"] = q.Snappy
 	ci["feature_negotiation"] = true
 	ci["sample_rate"] = q.SampleRate
+	ci["authentication_password"] = q.authenticationPassword
+
+
 	cmd, err := Identify(ci)
 	if err != nil {
 		cleanupConnection()

@@ -37,6 +37,8 @@ type Writer struct {
 	exitChan        chan int
 	closeChan       chan int
 	wg              sync.WaitGroup
+
+    authenticationPassword string
 }
 
 // WriterTransaction is returned by the async publish methods
@@ -64,7 +66,7 @@ var ErrNotConnected = errors.New("not connected")
 var ErrStopped = errors.New("stopped")
 
 // NewWriter returns an instance of Writer for the specified address
-func NewWriter(addr string) *Writer {
+func NewWriter(addr string, authenticationPassword string) *Writer {
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatalf("ERROR: unable to get hostname %s", err.Error())
@@ -81,6 +83,8 @@ func NewWriter(addr string) *Writer {
 		HeartbeatInterval: DefaultClientTimeout / 2,
 		ShortIdentifier:   strings.Split(hostname, ".")[0],
 		LongIdentifier:    hostname,
+
+        authenticationPassword:     authenticationPassword,
 	}
 }
 
@@ -213,6 +217,7 @@ func (w *Writer) connect() error {
 	ci["long_id"] = w.LongIdentifier
 	ci["heartbeat_interval"] = int64(w.HeartbeatInterval / time.Millisecond)
 	ci["feature_negotiation"] = true
+	ci["authentication_password"] = w.authenticationPassword
 	cmd, err := Identify(ci)
 	if err != nil {
 		log.Printf("ERROR: [%s] failed to create IDENTIFY command - %s", w, err)
